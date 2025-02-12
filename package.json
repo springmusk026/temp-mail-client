@@ -1,0 +1,37 @@
+{
+  "name": "temp-mail-client",
+  "version": "1.0.0",
+  "description": "A robust Node.js client for interacting with the temp-mail.org service",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "email",
+    "temporary-email",
+    "temp-mail",
+    "disposable-email",
+    "email-client",
+    "temp-mail-client"
+  ],
+  "author": {
+    "name": "TempMail API Client",
+    "url": "https://github.com/yourusername/temp-mail-client"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/temp-mail-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/temp-mail-client/issues"
+  },
+  "homepage": "https://github.com/yourusername/temp-mail-client#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
