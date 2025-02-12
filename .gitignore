@@ -4,6 +4,7 @@ package-lock.json
 yarn.lock
 https.txt
 stack.js
+HOWTO.md
 # Logs
 logs
 *.log

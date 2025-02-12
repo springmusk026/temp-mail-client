@@ -2,7 +2,9 @@
   "name": "temp-mail-client",
   "version": "1.0.0",
   "description": "A robust Node.js client for interacting with the temp-mail.org service",
+  "type": "module",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
@@ -17,17 +19,17 @@
   ],
   "author": {
     "name": "TempMail API Client",
-    "url": "https://github.com/yourusername/temp-mail-client"
+    "url": "https://github.com/springmusk026/temp-mail-client"
   },
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/temp-mail-client.git"
+    "url": "git+https://github.com/springmusk026/temp-mail-client.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/temp-mail-client/issues"
+    "url": "https://github.com/springmusk026/temp-mail-client/issues"
   },
-  "homepage": "https://github.com/yourusername/temp-mail-client#readme",
+  "homepage": "https://github.com/springmusk026/temp-mail-client#readme",
   "dependencies": {
     "cheerio": "^1.0.0"
   },

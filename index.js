@@ -1,13 +1,17 @@
-const cheerio = require('cheerio');
+import cheerio from 'cheerio';
 
 /**
- * Configuration for the TempMail service
+ * @typedef {import('./index').TempMailConfig} TempMailConfig
+ * @typedef {import('./index').Message} Message
+ * @typedef {import('./index').MailboxResponse} MailboxResponse
+ * @typedef {import('./index').MessagesResponse} MessagesResponse
  */
-const CONFIG = {
+
+const DEFAULT_CONFIG = {
     BASE_URL: 'https://web2.temp-mail.org',
-    POLLING_INTERVAL: 5000, // 5 seconds
+    POLLING_INTERVAL: 5000,
     MAX_RETRIES: 3,
-    RETRY_DELAY: 1000, // 1 second
+    RETRY_DELAY: 1000,
     HEADERS: {
         "accept": "*/*",
         "accept-language": "en-US,en;q=0.6",
@@ -25,7 +29,11 @@ const CONFIG = {
     }
 };
 
-class APIError extends Error {
+export class APIError extends Error {
+    /**
+     * @param {string} message 
+     * @param {number} statusCode 
+     */
     constructor(message, statusCode) {
         super(message);
         this.name = 'APIError';
@@ -33,43 +41,60 @@ class APIError extends Error {
     }
 }
 
-class TempMail {
-    constructor(config = CONFIG) {
-        this.config = config;
-        this.token = null;
-        this.mailbox = null;
+export default class TempMail {
+    #config;
+    #token = null;
+    #mailbox = null;
+
+    /**
+     * @param {TempMailConfig} [config] 
+     */
+    constructor(config = {}) {
+        this.#config = { ...DEFAULT_CONFIG, ...config };
+    }
+
+    /**
+     * Get current mailbox address
+     * @returns {string|null}
+     */
+    get email() {
+        return this.#mailbox;
     }
 
     /**
      * Retry a function with exponential backoff
-     * @param {Function} fn - Function to retry
-     * @param {number} retries - Number of retries
-     * @returns {Promise}
+     * @template T
+     * @param {() => Promise<T>} fn 
+     * @param {number} [retries] 
+     * @returns {Promise<T>}
      */
-    async #retry(fn, retries = this.config.MAX_RETRIES) {
+    async #retry(fn, retries = this.#config.MAX_RETRIES) {
         for (let i = 0; i < retries; i++) {
             try {
                 return await fn();
             } catch (error) {
                 if (i === retries - 1) throw error;
-                await new Promise(resolve => setTimeout(resolve, this.config.RETRY_DELAY * Math.pow(2, i)));
+                await new Promise(resolve => 
+                    setTimeout(resolve, this.#config.RETRY_DELAY * Math.pow(2, i))
+                );
             }
         }
     }
 
     /**
-     * Make an API request with authentication if needed
-     * @param {string} endpoint - API endpoint
-     * @param {Object} options - Fetch options
-     * @returns {Promise<Object>}
+     * Make an API request
+     * @template T
+     * @param {string} endpoint 
+     * @param {RequestInit} [options] 
+     * @returns {Promise<T>}
      */
     async #makeRequest(endpoint, options = {}) {
-        const headers = { ...this.config.HEADERS };
-        if (this.token) {
-            headers.authorization = `Bearer ${this.token}`;
+        const headers = { ...this.#config.HEADERS };
+        if (this.#token) {
+            headers.authorization = `Bearer ${this.#token}`;
         }
 
-        const response = await fetch(`${this.config.BASE_URL}${endpoint}`, {
+        const response = await fetch(`${this.#config.BASE_URL}${endpoint}`, {
             ...options,
             headers: { ...headers, ...options.headers },
         });
@@ -89,14 +114,15 @@ class TempMail {
      */
     async initialize() {
         try {
+            /** @type {MailboxResponse} */
             const data = await this.#retry(() => 
                 this.#makeRequest('/mailbox', { method: 'POST' })
             );
 
-            this.token = data.token;
-            this.mailbox = data.mailbox;
+            this.#token = data.token;
+            this.#mailbox = data.mailbox;
 
-            if (!this.token || !this.mailbox) {
+            if (!this.#token || !this.#mailbox) {
                 throw new Error('Failed to initialize mailbox');
             }
         } catch (error) {
@@ -107,10 +133,10 @@ class TempMail {
 
     /**
      * Get messages from mailbox
-     * @returns {Promise<Object>}
+     * @returns {Promise<MessagesResponse>}
      */
     async getMessages() {
-        if (!this.token) {
+        if (!this.#token) {
             throw new Error('Not initialized. Call initialize() first.');
         }
 
@@ -121,11 +147,11 @@ class TempMail {
 
     /**
      * Read a specific message
-     * @param {string} messageId - ID of the message to read
-     * @returns {Promise<Object>}
+     * @param {string} messageId 
+     * @returns {Promise<Message>}
      */
     async readMail(messageId) {
-        if (!this.token) {
+        if (!this.#token) {
             throw new Error('Not initialized. Call initialize() first.');
         }
         if (!messageId) {
@@ -139,8 +165,8 @@ class TempMail {
 
     /**
      * Extract confirmation link from HTML body
-     * @param {string} htmlBody - HTML body of the email
-     * @returns {string|null} - Confirmation link or null if not found
+     * @param {string} htmlBody 
+     * @returns {string|null}
      */
     extractConfirmationLink(htmlBody) {
         try {
@@ -154,11 +180,11 @@ class TempMail {
 
     /**
      * Start monitoring mailbox for new messages
-     * @param {Function} callback - Callback function for processing messages
+     * @param {(message: Message) => Promise<void>} callback 
      * @returns {Promise<void>}
      */
     async monitorMailbox(callback) {
-        if (!this.token) {
+        if (!this.#token) {
             throw new Error('Not initialized. Call initialize() first.');
         }
 
@@ -182,31 +208,15 @@ class TempMail {
                     }
                 }
 
-                await new Promise(resolve => setTimeout(resolve, this.config.POLLING_INTERVAL));
+                await new Promise(resolve => 
+                    setTimeout(resolve, this.#config.POLLING_INTERVAL)
+                );
             } catch (error) {
                 console.error('Error while monitoring mailbox:', error.message);
-                // Wait before retrying after error
-                await new Promise(resolve => setTimeout(resolve, this.config.RETRY_DELAY));
+                await new Promise(resolve => 
+                    setTimeout(resolve, this.#config.RETRY_DELAY)
+                );
             }
         }
     }
 }
-
-// Example usage
-async function main() {
-    const tempMail = new TempMail();
-
-    try {
-        await tempMail.initialize();
-        console.log('Mailbox created:', tempMail.mailbox);
-
-        await tempMail.monitorMailbox(async (message) => {
-            console.log('Processing message:', message.subject);
-        });
-    } catch (error) {
-        console.error('Application error:', error.message);
-        process.exit(1);
-    }
-}
-
-main();
